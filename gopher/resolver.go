@@ -1,6 +1,12 @@
 package gopher
 
-import "github.com/graphql-go/graphql"
+import (
+	"errors"
+
+	"grapql/job"
+
+	"github.com/graphql-go/graphql"
+)
 
 // type Resolver interface {
 // 	// ResolveGophers should return a list of all gophers in the repository
@@ -10,12 +16,14 @@ import "github.com/graphql-go/graphql"
 // }
 type GopherService struct {
 	gophers Repository
+	jobs    job.Repository
 }
 
 // NewService is a factory that creates a new GopherService
-func NewService(repo Repository) GopherService {
+func NewService(repo Repository, jobrepo job.Repository) GopherService {
 	return GopherService{
 		gophers: repo,
+		jobs:    jobrepo,
 	}
 }
 
@@ -27,4 +35,19 @@ func (gs GopherService) ResolveGophers(p graphql.ResolveParams) (interface{}, er
 		return nil, err
 	}
 	return gophers, nil
+}
+
+func (gs *GopherService) ResolveJobs(p graphql.ResolveParams) (interface{}, error) {
+	// Fetch Source Value
+	g, ok := p.Source.(Gopher)
+
+	if !ok {
+		return nil, errors.New("source was not a Gopher")
+	}
+	// Find Jobs Based on the Gophers ID
+	jobs, err := gs.jobs.GetJobs(g.ID)
+	if err != nil {
+		return nil, err
+	}
+	return jobs, nil
 }
